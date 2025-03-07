@@ -23,7 +23,7 @@ pip install prompt-logger
 from prompt_logger import PromptLogger, capture
 
 # Initialize the logger
-logger = PromptLogger("my-namespace")
+logger = PromptLogger("my-namespace", database="sqlite:///my_prompts.db")
 
 # Log a single prompt and response
 logger.save_interaction("What is the weather?", "It's sunny!")
@@ -32,7 +32,7 @@ logger.save_interaction("What is the weather?", "It's sunny!")
 logger.export_to_jsonl("output.jsonl")
 
 # Use the decorator to automatically log prompts
-@capture("my-namespace")
+@capture("my-namespace", database="sqlite:///my_prompts.db")
 def generate_text(prompt):
     # Your LLM call here
     return "Generated response"
@@ -43,7 +43,7 @@ def generate_text(prompt):
 Export recorded prompts to a JSONL file:
 
 ```bash
-$ prompt-logger export output.jsonl --namespace my-namespace
+$ prompt-logger export output.jsonl --namespace=my-namespace --database=sqlite:///my_prompts.db
 ```
 
 ## Development
