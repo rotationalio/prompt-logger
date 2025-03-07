@@ -25,4 +25,4 @@ jobs:
 
       - name: Build distribution
         run: |
-          make build
+          python -m build
