@@ -52,7 +52,6 @@ class PromptLogger:
     def _init_db(self, create_if_not_exists: bool = True):
         # TODO: Support remote databases
         url = make_url(self.database)
-        print(url.database)
         if not os.path.exists(url.database) and not create_if_not_exists:
             raise ValueError(f"Database does not exist: {self.database}")
 

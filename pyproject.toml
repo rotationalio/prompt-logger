@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prompt-logger"
+version = "0.1.0"
+description = "A tool for logging and exporting AI prompts and responses"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Patrick Deziel", email = "deziel.patrick@gmail.com"},
+]
+keywords = ["ai", "logging", "prompts", "llm", "database"]
+classifiers = [
+    "Development Status :: 3 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "sqlalchemy>=2.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/rotationalio/prompt-logger"
+Repository = "https://github.com/rotationalio/prompt-logger.git"
+
+[project.scripts]
+prompt-logger = "prompt_logger.cli:main"
