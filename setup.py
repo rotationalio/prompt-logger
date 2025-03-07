@@ -15,7 +15,7 @@ setup(
     url="https://github.com/rotationalio/prompt-logger",
     packages=find_packages(),
     classifiers=[
-        "Development Status :: 3 - Beta",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
