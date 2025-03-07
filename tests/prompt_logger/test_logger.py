@@ -1,3 +1,4 @@
+import json
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -59,3 +60,52 @@ class TestPromptLogger:
         assert record.prompt == "test prompt"
         assert record.response == "test response"
         session.close()
+
+    def test_export_to_jsonl(self, logger, tmp_path):
+        # Add some test data
+        logger.save_interaction("prompt 1", "response 1")
+        logger.save_interaction("prompt 2", "response 2")
+
+        # Export to JSONL
+        output_file = tmp_path / "export.jsonl"
+        logger.export_to_jsonl(str(output_file))
+
+        # Verify the exported file
+        with open(output_file) as f:
+            lines = f.readlines()
+            assert len(lines) == 2
+
+            # Check first record
+            record1 = json.loads(lines[0])
+            assert record1["prompt"] == "prompt 1"
+            assert record1["response"] == "response 1"
+            assert record1["namespace"] == "test-namespace"
+            assert "timestamp" in record1
+            assert "id" in record1
+
+            # Check second record
+            record2 = json.loads(lines[1])
+            assert record2["prompt"] == "prompt 2"
+            assert record2["response"] == "response 2"
+            assert record2["namespace"] == "test-namespace"
+            assert "timestamp" in record2
+            assert "id" in record2
+
+    def test_export_to_jsonl_with_namespace(self, logger, tmp_path):
+        # Add test data with different namespaces
+        logger.save_interaction("prompt 1", "response 1", namespace="ns1")
+        logger.save_interaction("prompt 2", "response 2", namespace="ns2")
+
+        # Export only ns1 records
+        output_file = tmp_path / "export.jsonl"
+        logger.export_to_jsonl(str(output_file), namespace="ns1")
+
+        # Verify only ns1 records were exported
+        with open(output_file) as f:
+            lines = f.readlines()
+            assert len(lines) == 1
+
+            record = json.loads(lines[0])
+            assert record["prompt"] == "prompt 1"
+            assert record["response"] == "response 1"
+            assert record["namespace"] == "ns1"

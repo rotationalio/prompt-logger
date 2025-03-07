@@ -1,7 +1,10 @@
+import os
+import json
 import uuid
 from functools import wraps
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine.url import make_url
 
 from prompt_logger.models import PromptRecord, Base
 
@@ -30,14 +33,29 @@ class PromptLogger:
     ----------
     namespace: str
         The namespace to log prompts and responses to.
+    database: str (default: "sqlite:///prompts.db")
+        The database connection string.
+    create_if_not_exists: bool (default: True)
+        If True, the database will be created if it does not exist.
     """
 
-    def __init__(self, namespace, database: str = "sqlite:///prompts.db"):
+    def __init__(
+        self,
+        namespace,
+        database: str = "sqlite:///prompts.db",
+        create_if_not_exists: bool = True,
+    ):
         self.namespace = namespace
         self.database = database
-        self._init_db()
+        self._init_db(create_if_not_exists=create_if_not_exists)
 
-    def _init_db(self):
+    def _init_db(self, create_if_not_exists: bool = True):
+        # TODO: Support remote databases
+        url = make_url(self.database)
+        print(url.database)
+        if not os.path.exists(url.database) and not create_if_not_exists:
+            raise ValueError(f"Database does not exist: {self.database}")
+
         self.engine = create_engine(self.database)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
@@ -56,6 +74,41 @@ class PromptLogger:
         session.add(record)
         session.commit()
         session.close()
+
+    def export_to_jsonl(self, output_file: str, namespace: str = None):
+        """
+        Export prompt records to a JSONL file.
+
+        Parameters
+        ----------
+        output_file: str
+            Path to the output JSONL file
+        namespace: str, optional
+            If provided, only export records from this namespace. If None, export all records.
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+
+        try:
+            query = session.query(PromptRecord)
+            if namespace:
+                query = query.filter(PromptRecord.namespace == namespace)
+
+            with open(output_file, "w") as f:
+                for record in query:
+                    # Convert datetime to ISO format string for JSON serialization
+                    data = {
+                        "id": record.id,
+                        "namespace": record.namespace,
+                        "prompt": record.prompt,
+                        "response": record.response,
+                        "timestamp": (
+                            record.timestamp.isoformat() if record.timestamp else None
+                        ),
+                    }
+                    f.write(json.dumps(data) + "\n")
+        finally:
+            session.close()
 
 
 def capture(namespace: str, database: str = "sqlite:///prompts.db"):
