@@ -1,11 +1,12 @@
 from setuptools import setup, find_packages
+from prompt_logger.version import get_version
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
     name="prompt-logger",
-    version="0.1.0",
+    version=get_version(),
     author="Patrick Deziel",
     author_email="deziel.patrick@gmail.com",
     description="A tool for logging and exporting AI prompts and responses",
