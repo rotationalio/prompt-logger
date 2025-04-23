@@ -13,7 +13,18 @@ def main():
         "output_file", type=str, help="Path to the output JSONL file"
     )
     export_parser.add_argument(
-        "--namespace", "-n", type=str, help="Namespace to export", required=True
+        "--namespace", "-n", type=str, help="Namespace to export", default="default"
+    )
+    export_parser.add_argument(
+        "--models", "-m", type=str, help="Model names to export", default="all"
+    )
+    export_parser.add_argument(
+        "--type",
+        "-t",
+        type=str,
+        help="Type of prompts to export",
+        default="chat",
+        choices=["chat", "text"],
     )
     export_parser.add_argument(
         "--database",
@@ -26,10 +37,23 @@ def main():
 
     if args.command == "export":
         logger = PromptLogger(
-            args.namespace, database=args.database, create_if_not_exists=False
+            namespace=args.namespace, database=args.database, create_if_not_exists=False
         )
-        logger.export_to_jsonl(args.output_file, namespace=args.namespace)
-        print(f"Successfully exported prompts to {args.output_file}")
+        models = args.models.split(",") if args.models != "all" else None
+        if args.type == "chat":
+            logger.export_chat_prompts(
+                args.output_file, models=models, namespace=args.namespace
+            )
+        elif args.type == "text":
+            logger.export_text_prompts(
+                args.output_file, models=models, namespace=args.namespace
+            )
+        else:
+            print(
+                f"Unknown type: {args.type}, it should be 'chat' for message-style prompts or 'text' for text-style prompts."
+            )
+            parser.print_help()
+            return
     else:
         parser.print_help()
 
