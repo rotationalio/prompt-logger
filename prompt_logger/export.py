@@ -1,4 +1,5 @@
 import json
+from typing import List, Dict
 from datetime import datetime
 from dataclasses import dataclass
 
@@ -15,12 +16,12 @@ class PromptExport:
     id: str
     namespace: str
     model: str
-    messages: list[dict]
-    completions: list[dict]
+    messages: List[Dict]
+    completions: List[Dict]
     inference_on: datetime
     inference_seconds: float
-    tools: list[dict] = None
-    generation_kwargs: dict = None
+    tools: List[Dict] = None
+    generation_kwargs: Dict = None
 
     def to_json(self):
         """

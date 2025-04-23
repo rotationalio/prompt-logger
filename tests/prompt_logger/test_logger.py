@@ -4,7 +4,7 @@ from datetime import datetime
 from unittest.mock import Mock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from prompt_logger.models.inference import (
     Prompt,
@@ -45,7 +45,7 @@ class MockFunction:
 @dataclass
 class MockToolCall:
     id: str = "tool_call_id"
-    function: MockFunction = MockFunction()
+    function: MockFunction = field(default_factory=MockFunction)
 
 
 @dataclass
@@ -62,7 +62,7 @@ class MockCompletion:
 
 @dataclass
 class MockChoice:
-    message: MockMessage = MockMessage()
+    message: MockMessage = field(default_factory=MockMessage)
     finish_reason: str = "stop"
 
 

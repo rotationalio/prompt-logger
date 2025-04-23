@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List, Dict
 from dataclasses import dataclass
 
 
@@ -21,9 +21,9 @@ class ChatCompletionParams:
     """
 
     model: str
-    messages: list
-    tools: list[dict] = None
-    extra_kwargs: dict[str, Any] = None
+    messages: List
+    tools: List[Dict] = None
+    extra_kwargs: Dict[str, Any] = None
 
     @classmethod
     def from_kwargs(cls, **kwargs):
