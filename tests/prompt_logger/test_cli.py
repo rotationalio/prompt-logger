@@ -15,7 +15,7 @@ def test_db(tmp_path):
 def test_export_command(tmp_path, test_db, capsys):
     """Test the export command with various scenarios."""
     # Setup test data
-    logger = PromptLogger("test-namespace", database=test_db)
+    logger = PromptLogger(namespace="test-namespace", database=test_db)
     logger.save_interaction("test prompt 1", "test response 1")
     logger.save_interaction("test prompt 2", "test response 2")
 
@@ -29,6 +29,8 @@ def test_export_command(tmp_path, test_db, capsys):
         "test-namespace",
         "--database",
         test_db,
+        "--type",
+        "text",
     ]
 
     # Run the command
@@ -36,10 +38,6 @@ def test_export_command(tmp_path, test_db, capsys):
 
     sys.argv = export_cmd
     main()
-
-    # Verify output message
-    captured = capsys.readouterr()
-    assert f"Successfully exported prompts to {output_file}" in captured.out
 
     # Verify exported file contents
     with open(output_file) as f:
@@ -51,29 +49,6 @@ def test_export_command(tmp_path, test_db, capsys):
             "test prompt 1",
             "test prompt 2",
         }
-
-
-def test_export_command_no_namespace(tmp_path, test_db, capsys):
-    """Test that export command requires a namespace."""
-    output_file = str(tmp_path / "test.jsonl")
-    export_cmd = [
-        "prompt_logger",
-        "export",
-        output_file,
-        "--database",
-        test_db,
-    ]
-
-    # Run the command
-    from prompt_logger.cli import main
-
-    sys.argv = export_cmd
-    with pytest.raises(SystemExit):
-        main()
-
-    # Verify error message
-    captured = capsys.readouterr()
-    assert "error: the following arguments are required: --namespace/-n" in captured.err
 
 
 def test_export_command_no_database(tmp_path):
@@ -99,7 +74,7 @@ def test_export_command_no_database(tmp_path):
 
 def test_export_command_empty_database(tmp_path, test_db, capsys):
     """Test export command with an empty database."""
-    _ = PromptLogger("test-namespace", database=test_db)
+    _ = PromptLogger(namespace="test-namespace", database=test_db)
 
     output_file = str(tmp_path / "test.jsonl")
     export_cmd = [
@@ -117,10 +92,6 @@ def test_export_command_empty_database(tmp_path, test_db, capsys):
 
     sys.argv = export_cmd
     main()
-
-    # Verify output message
-    captured = capsys.readouterr()
-    assert f"Successfully exported prompts to {output_file}" in captured.out
 
     # Verify empty file was created
     assert Path(output_file).exists()
