@@ -24,30 +24,63 @@ from prompt_logger.export import PromptExport
 
 class PromptLogger:
     """
-    PromptLogger is a wrapper around chatbot and LLM interfaces to capture and exfiltrate prompts and responses to a namespace.
+    PromptLogger is a wrapper around chatbot and LLM interfaces to capture prompts and
+    responses to a namespace.
 
     Usage
     -----
-    Attach the logger to a method:
+
+    For OpenAI-style clients (e.g. OpenAI, Azure OpenAI), you can attach the logger to
+    the client to automatically log all executed prompts.
+
     ```
-    logger = PromptLogger('my-prompts')
-    client = ChatbotClient()
-    logger.attach(client)
+    from openai import OpenAI
+    from prompt_logger import PromptLogger
+
+    logger = PromptLogger()
+    client = OpenAI()
+    logger.attach_to_client(client)
+    client.chat.completions.create(
+        model="gpt-4.1",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "What is 2 + 2?"},
+        ],
+    )
+    logger.export_chat_prompts("prompts.jsonl")
     ```
 
-    One-off capture a prompt:
+    Alternatively, you can use the `capture` decorator to log text completions.
+
     ```
+    from prompt_logger import capture
+
+    @capture('my-prompts', database='sqlite:///my-prompts.db')
+    def generate_text(prompt):
+        # Your text generation logic here
+        return "This is a generated response."
+    ```
+
+    Or you can use the PromptLogger directly to capture one-off prompts.
+
+    ```
+    from prompt_logger import PromptLogger
+
     logger = PromptLogger('my-prompts')
     client = ChatbotClient()
-    response = logger.capture(client.text_generation, prompt='This is a test prompt')
+    prompt = "What is 2 + 2?"
+    response = client.generate(prompt)
+    logger.save_interaction(prompt, response)
     ```
 
     Parameters
     ----------
     namespace: str
         The namespace to log prompts and responses to.
+
     database: str (default: "sqlite:///prompts.db")
         The database connection string.
+
     create_if_not_exists: bool (default: True)
         If True, the database will be created if it does not exist.
     """
@@ -86,8 +119,8 @@ class PromptLogger:
         Fetch model info from the cache or the client.
         TODO: Add cache eviction policy.
         """
-        if client in self._models:
-            return self._models[client]
+        if model_name in self._models:
+            return self._models[model_name]
         try:
             model = client.models.retrieve(model_name)
         except Exception as e:
@@ -95,7 +128,7 @@ class PromptLogger:
                 f"Could not fetch model info, no metadata will be available: {e}"
             )
             return None
-        self._models[client] = model
+        self._models[model_name] = model
         return model
 
     def _get_target_fn(self, client, fn_name: str):
@@ -265,6 +298,47 @@ class PromptLogger:
         session.add(completion)
         session.commit()
         session.close()
+
+    def export_models(
+        self, output_file: str, namespace: str = None, models: list = None
+    ):
+        """
+        Export model metadata to a JSONL file.
+
+        Parameters
+        ----------
+        output_file: str
+            Path to the output JSONL file
+
+        namespace: str, optional
+            If provided, only export models from this namespace.
+
+        models: list, optional
+            If provided, only export models with these names.
+
+        Returns
+        -------
+        int
+            The number of models exported.
+        """
+
+        session = self.Session()
+        try:
+            query = session.query(Model).filter_by(
+                namespace=namespace or self.namespace
+            )
+            if models:
+                self.logger.info(f"Filtering models for: {models}")
+                query = query.filter(Model.name.in_(models))
+
+            count = query.count()
+            with open(output_file, "w") as f:
+                for model in query:
+                    f.write(json.dumps(model.to_dict()) + "\n")
+        finally:
+            session.close()
+        self.logger.info(f"Exported {count} models to {output_file}")
+        return count
 
     def export_chat_prompts(
         self,

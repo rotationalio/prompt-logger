@@ -9,8 +9,18 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
-def remove_none_values(d):
-    return {k: v for k, v in d.items() if v is not None}
+def is_empty(value):
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return value.strip() == ""
+    if isinstance(value, list) or isinstance(value, dict):
+        return len(value) == 0
+    return False
+
+
+def remove_empty_values(d):
+    return {k: v for k, v in d.items() if not is_empty(v)}
 
 
 class TimestampedModel(Base):
@@ -38,6 +48,22 @@ class Model(TimestampedModel):
     provider: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     created: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+    def to_dict(self):
+        """
+        Convert the model to a dictionary format.
+        """
+        return remove_empty_values(
+            {
+                "id": self.id,
+                "namespace": self.namespace,
+                "name": self.name,
+                "version": self.version,
+                "provider": self.provider,
+                "description": self.description,
+                "created": self.created.timestamp(),
+            }
+        )
 
 
 class MessageRole(enum.Enum):
@@ -69,7 +95,7 @@ class Message(TimestampedModel):
         Convert the message to a dictionary format.
         """
 
-        return remove_none_values(
+        return remove_empty_values(
             {
                 "role": self.role,
                 "content": self.content,
@@ -99,7 +125,7 @@ class ChatCompletion(TimestampedModel):
         Convert the chat completion to a dictionary format.
         """
 
-        return remove_none_values(
+        return remove_empty_values(
             {
                 "role": self.role,
                 "content": self.content,
@@ -148,7 +174,7 @@ class ToolCall(TimestampedModel):
         Convert the tool call to a dictionary format.
         """
 
-        return remove_none_values(
+        return remove_empty_values(
             {
                 "id": self.tool_id,
                 "type": "function",
@@ -194,13 +220,13 @@ class TextCompletion(TimestampedModel):
         Convert the text completion to a dictionary format.
         """
 
-        return remove_none_values(
+        return remove_empty_values(
             {
                 "id": self.id,
                 "namespace": self.namespace,
                 "prompt": self.prompt,
                 "response": self.response,
                 "model": self.model,
-                "inference_on": self.created_at.isoformat(),
+                "inference_on": self.created_at.timestamp(),
             }
         )

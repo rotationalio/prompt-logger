@@ -22,7 +22,7 @@ def test_db(tmp_path):
 
 @pytest.fixture
 def logger(test_db):
-    pl = PromptLogger(namespace="test-namespace", database=test_db)
+    pl = PromptLogger(namespace="test-namespace", database=test_db, log_level="WARN")
     yield pl
 
     # Cleanup the database
@@ -307,6 +307,57 @@ class TestPromptLogger:
         assert record.prompt == "test prompt"
         assert record.response == "test response"
         session.close()
+
+    def test_export_models(self, logger, tmp_path, mock_client):
+        # Add some test data
+        mock_client.models.retrieve = Mock(
+            side_effect=[
+                MockModel(
+                    owned_by="test_org",
+                    created=datetime.now().timestamp(),
+                ),
+                MockModel(
+                    owned_by="other_org",
+                    created=datetime.now().timestamp(),
+                ),
+            ]
+        )
+        logger.attach_to_client(mock_client)
+        mock_client.chat.completions.create(
+            messages=[{"role": "user", "content": "What is the weather today?"}],
+            model="gpt-3.5-turbo",
+            max_tokens=50,
+        )
+        mock_client.chat.completions.create(
+            messages=[{"role": "user", "content": "What is the weather tomorrow?"}],
+            model="gemini-2.5",
+            max_tokens=50,
+        )
+
+        # Export to JSONL
+        output_file = tmp_path / "export.jsonl"
+        logger.export_models(str(output_file))
+
+        # Verify the exported file
+        with open(output_file) as f:
+            lines = f.readlines()
+            assert len(lines) == 2
+
+            # Check first record
+            record1 = json.loads(lines[0])
+            assert record1["id"] is not None
+            assert record1["name"] == "gpt-3.5-turbo"
+            assert record1["namespace"] == "test-namespace"
+            assert record1["provider"] == "test_org"
+            assert record1["created"] is not None
+
+            # Check second record
+            record2 = json.loads(lines[1])
+            assert record2["id"] is not None
+            assert record2["name"] == "gemini-2.5"
+            assert record2["namespace"] == "test-namespace"
+            assert record2["provider"] == "other_org"
+            assert record2["created"] is not None
 
     def test_export_to_jsonl(self, logger, tmp_path):
         # Add some test data
