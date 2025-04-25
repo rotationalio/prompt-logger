@@ -3,7 +3,7 @@ from typing import List, Dict
 from datetime import datetime
 from dataclasses import dataclass
 
-from prompt_logger.models.inference import remove_none_values
+from prompt_logger.models.inference import remove_empty_values
 
 
 @dataclass
@@ -36,7 +36,7 @@ class PromptExport:
             "tools": self.tools,
             "generation_kwargs": self.generation_kwargs,
             "completions": self.completions,
-            "inference_on": self.inference_on.isoformat(),
+            "inference_on": self.inference_on.timestamp(),
             "inference_seconds": self.inference_seconds,
         }
-        return json.dumps(remove_none_values(data))
+        return json.dumps(remove_empty_values(data))
